@@ -21,6 +21,12 @@ namespace ClocknestGames.Game.Core
 		private void Update()
 		{
 			// CGDebug.DrawPlane(HexGrid.Instance.transform.position, _gridTouchPlane.normal);
+			Ray ray = new Ray(CameraHandler.Instance.transform.position, CameraHandler.Instance.transform.forward);
+			if (_gridTouchPlane.Raycast(ray, out float enter))
+			{
+				Vector3 hitPoint = ray.GetPoint(enter);
+				CameraHandler.Instance.SetRotatePivotPosition(hitPoint);
+			}
 		}
 
 		private void OnScreenTouchDown()
