@@ -7,6 +7,9 @@ namespace ClocknestGames.Game.Core
 {
     public class TileManager : Singleton<TileManager>
     {
+		[Header("Editor")]
+		[SerializeField, Range(0, 5)] private int _editorEdgeIndex;
+
 		private HexTile _selectedTile = null;
 		private Plane _gridTouchPlane;
 		private Vector3 _touchWorldPosition;
@@ -74,6 +77,22 @@ namespace ClocknestGames.Game.Core
 			{
 				Gizmos.color = Color.green;
 				Gizmos.DrawWireSphere(_selectedTile.transform.position, .5f);
+
+				Gizmos.color = Color.red;
+				var edge = HexGrid.Instance.GetEdge(_selectedTile, _editorEdgeIndex);
+				Gizmos.DrawLine(edge.point1, edge.point2);
+				Gizmos.color = Color.yellow;
+				// Gizmos.DrawWireSphere(edge.point1, .1f);
+				// Gizmos.DrawWireSphere(edge.point2, .1f);
+
+				var neighbourEdge = HexGrid.Instance.GetNeigbourEdge(edge);
+				if (neighbourEdge.hexTile != null)
+				{
+					Gizmos.color = Color.blue;
+					Gizmos.DrawWireCube(neighbourEdge.hexTile.transform.position, Vector3.one * .5f);
+					Gizmos.DrawWireSphere(neighbourEdge.point1, .1f);
+					Gizmos.DrawWireSphere(neighbourEdge.point2, .1f);
+				}
 			}
 
 			if (_tilesOnRadius != null)

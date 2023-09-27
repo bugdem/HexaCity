@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEngine.UI.GridLayoutGroup;
 
 namespace ClocknestGames.Game.Core
 {
@@ -201,42 +202,43 @@ namespace ClocknestGames.Game.Core
 			return hexTile.CubeIndex;
 		}
 
-		private List<HexTile> GetNeighbours(Vector3Int cubeIndex)
+		public List<Vector3> GetCorners(HexTile hexTile)
 		{
-			List<HexTile> neighbours = new();
-			Vector3Int[] neighbourCoordinates = new Vector3Int[]
+			List<Vector3> corners = new();
+			Hex centerTile = hexTile.CubeIndex.ToHex();
+			Point center = _gridLayout.HexToPixel(centerTile);
+			for (int i = 0; i < 6; i++)
 			{
-				new Vector3Int(1,-1,0),
-				new Vector3Int(1,0,-1),
-				new Vector3Int(0,1,-1),
-				new Vector3Int(-1,1,0),
-				new Vector3Int(-1,0,1),
-				new Vector3Int(0,-1,1)
-			};
-
-			foreach (Vector3Int neighbourCoordinate in neighbourCoordinates)
-			{
-				if (_tiles.TryGetValue(cubeIndex + neighbourCoordinate, out HexTile neighbour))
-				{
-					neighbours.Add(neighbour);
-				}
+				Point offset = _gridLayout.HexCornerOffset(i);
+				corners.Add(new Vector3((float)(center.x + offset.x), transform.position.y, (float)(center.y + offset.y)));
 			}
-
-			return neighbours;
+			return corners;
 		}
 
-		private List<HexTile> GetNeighbours(HexTile hexTile)
+		public Edge GetEdge(HexTile hexTile, int edgeIndex)
 		{
-			return GetNeighbours(hexTile.CubeIndex);
+			Vector3 point1 = GetCornerPoint(hexTile, edgeIndex);
+			Vector3 point2 = GetCornerPoint(hexTile, (edgeIndex + 1) % 6);
+			return new Edge(hexTile, edgeIndex, point1, point2);
 		}
 
-		private Vector3 GetHexCorner(Vector3 tilePosition, int index)
+		public Edge GetNeigbourEdge(Edge edge)
 		{
-			float angleDegree = 60f * index;
-			float angleRad = angleDegree * Mathf.Deg2Rad;
-			return new Vector3(tilePosition.x + _tileSize * Mathf.Cos(angleRad),
-							   0f,
-							   tilePosition.z + _tileSize * Mathf.Sin(angleRad));
+			int edgeIndex = (edge.index + 3) % 6;
+			Hex currentHex = edge.hexTile.CubeIndex.ToHex();
+			Hex neighbourHex = currentHex.Neighbor((edge.index + 1) % 6);
+			if (_tiles.TryGetValue(neighbourHex.ToVector3Int(), out HexTile neighbourTile))
+				return GetEdge(neighbourTile, edgeIndex);
+
+			return new Edge();
+		}
+
+		public Vector3 GetCornerPoint(HexTile hexTile, int pointIndex)
+		{
+			Hex centerTile = hexTile.CubeIndex.ToHex();
+			Point center = _gridLayout.HexToPixel(centerTile);
+			Point offset = _gridLayout.HexCornerOffset(pointIndex);
+			return new Vector3((float)(center.x + offset.x), hexTile.transform.position.y, (float)(center.y + offset.y));
 		}
 
 		private void OnEnable()
@@ -264,6 +266,21 @@ namespace ClocknestGames.Game.Core
 		{
 			return new Hex(vector3Int.x, vector3Int.y, vector3Int.z);
 		}
+	}
+
+	public struct Edge
+	{
+		public Edge(HexTile hexTile, int index, Vector3 point1, Vector3 point2)
+		{
+			this.hexTile = hexTile;
+			this.index = index;
+			this.point1 = point1;
+			this.point2 = point2;
+		}
+		public readonly HexTile hexTile;
+		public readonly int index;
+		public readonly Vector3 point1;
+		public readonly Vector3 point2;
 	}
 
 
