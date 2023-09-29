@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using ClocknestGames.Library.Utils;
+using DG.Tweening;
 
 namespace ClocknestGames.Game.Core
 {
@@ -15,6 +16,12 @@ namespace ClocknestGames.Game.Core
 		private static readonly float[] _boundsZ = new float[] { -18f, -4f };
 		private static readonly float[] _zoomBounds = new float[] { 20f, 85f };
 
+		public Camera MainCamera => _camera;
+		public bool IsControlEnabled { get; set; } = true;
+		public bool IsPanEnabled { get; set; } = true;
+		public bool IsRotateEnabled { get; set; } = true;
+		public bool IsZoomEnabled { get; set; } = true;
+
 		private Camera _camera;
 
 		private Vector3 _lastPanPosition;
@@ -23,6 +30,7 @@ namespace ClocknestGames.Game.Core
 		private bool _wasZoomingLastFrame; // Touch mode only
 		private Vector2[] _lastZoomPositions; // Touch mode only
 		private Vector3 _rotatePivotPosition;
+		private Tweener _moveTweener;
 
 		protected override void Awake()
 		{
@@ -120,13 +128,27 @@ namespace ClocknestGames.Game.Core
 
 		void PanCamera(Vector3 newPanPosition)
 		{
+			if (!IsControlEnabled || !IsPanEnabled) return;
+			if (Vector3.Distance(newPanPosition, _lastPanPosition) <= 10f) return;
+
 			// Determine how much to move the camera
 			Vector3 offset = _camera.ScreenToViewportPoint(_lastPanPosition - newPanPosition);
 			Vector3 desiredDirection = Vector3.Normalize(new Vector3(transform.forward.x, 0, transform.forward.z));
 
+			Vector3 targetPosition = transform.position;
+			targetPosition += desiredDirection * offset.y * _panSpeed;
+			targetPosition += offset.x * transform.right * _panSpeed;
+
 			//Append the new pos to the `transform.position`.
-			transform.position += desiredDirection * offset.y * _panSpeed;
-			transform.position += offset.x * transform.right * _panSpeed;
+			// transform.position = targetPosition;
+
+			if (_moveTweener != null)
+				_moveTweener.Kill();
+
+			_moveTweener = transform.DOMove(targetPosition, 2.5f).SetSpeedBased(true).SetEase(Ease.OutCubic).OnComplete(() =>
+			{
+				_moveTweener = null;
+			});
 
 			// Ensure the camera remains within bounds.
 			Vector3 pos = transform.position;
@@ -140,6 +162,8 @@ namespace ClocknestGames.Game.Core
 
 		void RotateCamera(Vector3 newRotatePosition)
 		{
+			if (!IsControlEnabled || !IsRotateEnabled) return;
+
 			// Determine how much to rotate the camera
 			Vector3 offset = _camera.ScreenToViewportPoint(_lastRotatePosition - newRotatePosition);
 			transform.RotateAround(_rotatePivotPosition, Vector3.up, _rotateSpeed * offset.x);
@@ -150,10 +174,8 @@ namespace ClocknestGames.Game.Core
 
 		void ZoomCamera(float offset, float speed)
 		{
-			if (offset == 0)
-			{
-				return;
-			}
+			if (!IsControlEnabled || !IsZoomEnabled) return;
+			if (offset == 0) return;
 
 			_camera.fieldOfView = Mathf.Clamp(_camera.fieldOfView - (offset * speed), _zoomBounds[0], _zoomBounds[1]);
 		}

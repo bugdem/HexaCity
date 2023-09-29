@@ -80,14 +80,12 @@ namespace ClocknestGames.Library.Utils
 
             return null;
         }
-
+#if UNITY_EDITOR
 		public static bool IsBeingEditedInIsolatedPrefabMode(this GameObject obj)
 		{
-#if UNITY_EDITOR
             return PrefabStageUtility.GetPrefabStage(obj) != null;
-#endif
-            return false;
         }
+#endif
 
 		public static bool TryGetElement<T>(this List<T> list, int index, out T element)
         {

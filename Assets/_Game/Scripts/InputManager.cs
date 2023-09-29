@@ -15,10 +15,14 @@ namespace ClocknestGames.Game.Core
 		public static bool IsTouching { get; private set; }
 		public static Vector2 TouchPosition { get; private set; }
 		public static Vector2 TouchStartPosition { get; private set; }
+		public static Vector2 TouchEndPosition { get; private set; }
+		public static double TouchStartTime { get; private set; }
+		public static double TouchEndTime { get; private set; }
 
 		public delegate void TouchHandler();
 		public static event TouchHandler OnTouchDown;
 		public static event TouchHandler OnTouchUp;
+		public static event TouchHandler OnTapped;
 
 		private TouchControls _touchControls;
 
@@ -56,24 +60,34 @@ namespace ClocknestGames.Game.Core
 		{
 			_touchControls.Player.Touch.started += OnTouchStarted;
 			_touchControls.Player.Touch.canceled += OnTouchCanceled;
+
+			_touchControls.Player.Tap.performed += OnTapPerformed;
 		}
 
-		private void OnTouchStarted(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+		private void OnTapPerformed(UnityEngine.InputSystem.InputAction.CallbackContext context)
+		{
+			OnTapped?.Invoke();
+		}
+
+		private void OnTouchStarted(UnityEngine.InputSystem.InputAction.CallbackContext context)
 		{
 			// Debug.Log("Touch Started!");
 
 			IsTouching = true;
 
 			TouchStartPosition = _touchControls.Player.TouchPosition.ReadValue<Vector2>();
+			TouchStartTime = context.startTime;
 			TouchPosition = TouchStartPosition;
 
 			OnTouchDown?.Invoke();
 		}
 
-		private void OnTouchCanceled(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+		private void OnTouchCanceled(UnityEngine.InputSystem.InputAction.CallbackContext context)
 		{
 			// Debug.Log("Touch Ended!");
 
+			TouchEndPosition = _touchControls.Player.TouchPosition.ReadValue<Vector2>();
+			TouchEndTime = context.time;
 			IsTouching = false;
 
 			OnTouchUp?.Invoke();
