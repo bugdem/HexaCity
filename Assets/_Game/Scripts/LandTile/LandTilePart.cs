@@ -10,6 +10,8 @@ namespace ClocknestGames.Game.Core
         [SerializeField] protected Transform _cornerPoint;
         [SerializeField] protected Transform _content;
 
+        public abstract LandTilePartType PartType { get; }
+
         public LandTile LandTile { get; private set; }
         public int PartIndex { get; private set; }
         public bool IsCenterPart => PartIndex == 6;

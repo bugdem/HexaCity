@@ -1,5 +1,6 @@
 using ClocknestGames.Library.Utils;
 using DG.Tweening;
+using Dreamteck.Splines;
 using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,11 +17,19 @@ namespace ClocknestGames.Game.Core
 		public LandTilePart Prefab;
 	}
 
+	[System.Serializable]
+	public class LandTilePartPathSetting
+	{
+		public LandTilePartType PathType;
+		public List<SplineComputer> Paths;
+	}
+
     public class TileManager : Singleton<TileManager>
     {
 		[SerializeField] private LandTile _landTilePrefab;
 		[SerializeField] private Transform _landTileContainer;
 		[SerializeField] private List<LandTilePartSetting> _landTilePartSettings;
+		[SerializeField] private List<LandTilePartPathSetting> _landTilePartPathSettings;
 		[SerializeField] private float _swipeMininumDistance = .2f;
 		[SerializeField] private float _swipeMaximumTime = 1f;
 		[SerializeField] private float _swipeDirectionThreshold = .9f;
@@ -77,6 +86,16 @@ namespace ClocknestGames.Game.Core
 				Vector3 hitPoint = ray.GetPoint(enter);
 				CameraHandler.Instance.SetRotatePivotPosition(hitPoint);
 			}
+		}
+
+		public static TileManager Get()
+		{
+			return Application.isPlaying ? TileManager.Instance : FindObjectOfType<TileManager>();
+		}
+
+		public SplineComputer GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
+		{
+			return _landTilePartPathSettings.First(x => x.PathType == pathType).Paths[partIndexDiff - 1];
 		}
 
 		private LandTile CreateTile()
@@ -264,18 +283,13 @@ namespace ClocknestGames.Game.Core
 
 		private void OnDrawGizmos()
 		{
-			HexGrid hexGrid = null;
+			HexGrid hexGrid = HexGrid.Get();
 			Vector3 _selectedPosition = transform.position;
 
 			if (Application.isPlaying)
 			{
-				hexGrid = HexGrid.Instance;
 				if (_selectedTile != null)
 					_selectedPosition = _selectedTile.transform.position;
-			}
-			else
-			{
-				hexGrid = FindObjectOfType<HexGrid>();
 			}
 
 			float tileSize = hexGrid.TileSize;

@@ -6,6 +6,6 @@ namespace ClocknestGames.Game.Core
 {
 	public class HouseTilePart : LandTilePart
 	{
-
+		public override LandTilePartType PartType => LandTilePartType.House;
 	}
 }

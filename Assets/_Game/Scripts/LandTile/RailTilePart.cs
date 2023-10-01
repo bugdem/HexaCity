@@ -6,6 +6,6 @@ namespace ClocknestGames.Game.Core
 {
     public class RailTilePart : PathTilePart
     {
-
-    }
+		public override LandTilePartType PartType => LandTilePartType.Rail;
+	}
 }

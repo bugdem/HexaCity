@@ -6,6 +6,6 @@ namespace ClocknestGames.Game.Core
 {
 	public class MineTilePart : LandTilePart
 	{
-
+		public override LandTilePartType PartType => LandTilePartType.Mine;
 	}
 }

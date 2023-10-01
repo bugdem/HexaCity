@@ -26,6 +26,11 @@ namespace ClocknestGames.Game.Core
 		private Dictionary<Vector3Int, HexTile> _tiles = new();
 		private Layout _gridLayout;
 
+		public static HexGrid Get()
+		{
+			return Application.isPlaying ? HexGrid.Instance : FindObjectOfType<HexGrid>();
+		}
+
 		[Button]
 		private void LayoutGrid()
 		{
