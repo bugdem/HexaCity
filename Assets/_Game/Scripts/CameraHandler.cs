@@ -7,10 +7,11 @@ namespace ClocknestGames.Game.Core
 {
 	public class CameraHandler : Singleton<CameraHandler>
 	{
-		private static readonly float _panSpeed = 20f;
-		private static readonly float _rotateSpeed = 180f;
-		private static readonly float _zoomSpeedTouch = 0.1f;
-		private static readonly float _zoomSpeedMouse = 25f;
+		[SerializeField] private float _panSpeed = 20f;
+		[SerializeField] private float _panFollowSpeed = 10f;
+		[SerializeField] private float _rotateSpeed = 180f;
+		[SerializeField] private float _zoomSpeedTouch = 0.1f;
+		[SerializeField] private float _zoomSpeedMouse = 25f;
 
 		private static readonly float[] _boundsX = new float[] { -10f, 5f };
 		private static readonly float[] _boundsZ = new float[] { -18f, -4f };
@@ -145,7 +146,7 @@ namespace ClocknestGames.Game.Core
 			if (_moveTweener != null)
 				_moveTweener.Kill();
 
-			_moveTweener = transform.DOMove(targetPosition, 2.5f).SetSpeedBased(true).SetEase(Ease.OutCubic).OnComplete(() =>
+			_moveTweener = transform.DOMove(targetPosition, _panFollowSpeed).SetSpeedBased(true).SetEase(Ease.OutCubic).OnComplete(() =>
 			{
 				_moveTweener = null;
 			});

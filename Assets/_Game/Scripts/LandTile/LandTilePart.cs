@@ -12,13 +12,14 @@ namespace ClocknestGames.Game.Core
 
         public LandTile LandTile { get; private set; }
         public int PartIndex { get; private set; }
+        public bool IsCenterPart => PartIndex == 6;
 
         public void Initialize(LandTile landTile, int partIndex)
         {
             LandTile = landTile;
             PartIndex = partIndex;
 
-            bool isCenterPart = partIndex == 6;
+            bool isCenterPart = IsCenterPart;
 			_content.transform.SetParent(isCenterPart ? _centerPoint : _cornerPoint);
             _content.transform.localPosition = Vector3.zero;
             _content.transform.localRotation = Quaternion.identity;
@@ -32,6 +33,11 @@ namespace ClocknestGames.Game.Core
         public void Layout()
         {
             OnLayout();
+        }
+
+        public Edge GetEdge()
+        {
+            return LandTile.GetPartEdge(this);
         }
 
         protected virtual void OnInitialized() { }

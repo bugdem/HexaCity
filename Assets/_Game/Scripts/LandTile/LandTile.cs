@@ -86,6 +86,23 @@ namespace ClocknestGames.Game.Core
 			return true;
 		}
 
+		public List<T> GetParts<T>() where T: LandTilePart
+		{
+			List<T> parts = new();
+			foreach (var part in Parts)
+			{
+				if (part is T castedPart)
+					parts.Add(castedPart);
+			}
+
+			return parts;
+		}
+
+		public Edge GetPartEdge(LandTilePart tilePart)
+		{
+			return HexGrid.Instance.GetEdge(transform.position, tilePart.PartIndex);
+		}
+
 		public bool ValidateTileSetting(List<LandTilePartType> landTiles)
 		{
 			return true;

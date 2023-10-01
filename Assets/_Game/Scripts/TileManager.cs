@@ -19,6 +19,7 @@ namespace ClocknestGames.Game.Core
     public class TileManager : Singleton<TileManager>
     {
 		[SerializeField] private LandTile _landTilePrefab;
+		[SerializeField] private Transform _landTileContainer;
 		[SerializeField] private List<LandTilePartSetting> _landTilePartSettings;
 		[SerializeField] private float _swipeMininumDistance = .2f;
 		[SerializeField] private float _swipeMaximumTime = 1f;
@@ -43,7 +44,8 @@ namespace ClocknestGames.Game.Core
 		{
 			LandTilePartType.Forest,
 			LandTilePartType.House,
-			LandTilePartType.Grass
+			LandTilePartType.Grass,
+			LandTilePartType.Mine
 		};
 
 		protected override void Awake()
@@ -79,8 +81,9 @@ namespace ClocknestGames.Game.Core
 
 		private LandTile CreateTile()
 		{
-			LandTile newTile = Instantiate(_landTilePrefab);
+			LandTile newTile = Instantiate(_landTilePrefab, _landTileContainer);
 			newTile.GenerateTile(GenerateLandTilePartTypes());
+			newTile.transform.localScale = HexGrid.Instance.GetTileScale();
 			newTile.gameObject.SetActive(false);
 
 			return newTile;
@@ -124,6 +127,10 @@ namespace ClocknestGames.Game.Core
 
 		private void OnScreenTapped()
 		{
+			// Pointer must be touched up near touch down position to act as a tap event.
+			if (Vector2.Distance(InputManager.TouchStartPosition, InputManager.TouchEndPosition) >= _swipeMininumDistance)
+				return;
+
 			// Tap event is triggered event tapping on UI objects like button.
 			// So if we tap on any UI element, do not process.
 			if (EventSystem.current.IsPointerOverGameObject(0))
@@ -162,7 +169,7 @@ namespace ClocknestGames.Game.Core
 
 						_placingLandTile = _tilesWaitingToBePlaced[0];
 						_placingLandTile.transform.rotation = hexTileToSelect.transform.rotation;
-						_placingLandTile.transform.position = hexTileToSelect.transform.position + hexTileToSelect.transform.up * .05f;
+						_placingLandTile.transform.position = hexTileToSelect.transform.position + hexTileToSelect.transform.up * .1f * HexGrid.Instance.TileSize;
 						_placingLandTile.gameObject.SetActive(true);
 					}
 					else
@@ -234,6 +241,9 @@ namespace ClocknestGames.Game.Core
 		public void OnPlacementCancelButtonClicked()
 		{
 			_placingLandTileRotationIndex = 0;
+			_placingLandTile.gameObject.SetActive(false);
+			_placingLandTile = null;
+			_selectedTile = null;
 
 			CameraHandler.Instance.IsControlEnabled = true;
 		}
@@ -254,29 +264,49 @@ namespace ClocknestGames.Game.Core
 
 		private void OnDrawGizmos()
 		{
-			Gizmos.color = Color.red;
-			Gizmos.DrawWireSphere(_touchWorldPosition, .25f);
+			HexGrid hexGrid = null;
+			Vector3 _selectedPosition = transform.position;
 
-			if (_selectedTile != null)
+			if (Application.isPlaying)
 			{
-				Gizmos.color = Color.green;
-				Gizmos.DrawWireSphere(_selectedTile.transform.position, .5f);
+				hexGrid = HexGrid.Instance;
+				if (_selectedTile != null)
+					_selectedPosition = _selectedTile.transform.position;
+			}
+			else
+			{
+				hexGrid = FindObjectOfType<HexGrid>();
+			}
 
-				Gizmos.color = Color.red;
-				var edge = HexGrid.Instance.GetEdge(_selectedTile, _editorEdgeIndex);
-				Gizmos.DrawLine(edge.point1, edge.point2);
-				Gizmos.color = Color.yellow;
-				// Gizmos.DrawWireSphere(edge.point1, .1f);
-				// Gizmos.DrawWireSphere(edge.point2, .1f);
+			float tileSize = hexGrid.TileSize;
 
-				var neighbourEdge = HexGrid.Instance.GetNeigbourEdge(edge);
-				if (neighbourEdge.hexTile != null)
-				{
-					Gizmos.color = Color.blue;
-					Gizmos.DrawWireCube(neighbourEdge.hexTile.transform.position, Vector3.one * .5f);
-					Gizmos.DrawWireSphere(neighbourEdge.point1, .1f);
-					Gizmos.DrawWireSphere(neighbourEdge.point2, .1f);
-				}
+			Gizmos.color = Color.red;
+			Gizmos.DrawWireSphere(_touchWorldPosition, tileSize * .25f);
+
+			Gizmos.color = Color.green;
+			Gizmos.DrawWireSphere(_selectedPosition, tileSize * .5f);
+
+			Gizmos.color = Color.red;
+			var edge = hexGrid.GetEdge(_selectedPosition, _editorEdgeIndex);
+			Gizmos.DrawLine(edge.point1, edge.point2);
+			Gizmos.color = Color.yellow;
+			// Gizmos.DrawWireSphere(edge.point1, .1f);
+			// Gizmos.DrawWireSphere(edge.point2, .1f);
+
+			var neighbourEdge = hexGrid.GetNeigbourEdge(edge);
+			Vector3 neighbourTilePosition = hexGrid.GetPositionFromCubeIndex(neighbourEdge.hexCubeIndex);
+			bool drawNeighbourTile = true;
+			if (Application.isPlaying)
+			{
+				drawNeighbourTile = hexGrid.GetTile(neighbourEdge.hexCubeIndex) != null;
+			}
+
+			if (drawNeighbourTile)
+			{
+				Gizmos.color = Color.blue;
+				Gizmos.DrawWireCube(neighbourTilePosition, Vector3.one * tileSize * .5f);
+				Gizmos.DrawWireSphere(neighbourEdge.point1, tileSize * .1f);
+				Gizmos.DrawWireSphere(neighbourEdge.point2, tileSize * .1f);
 			}
 
 			if (_tilesOnRadius != null)
@@ -284,7 +314,7 @@ namespace ClocknestGames.Game.Core
 				Gizmos.color = Color.blue;
 				foreach (var tile in _tilesOnRadius)
 				{
-					Gizmos.DrawWireSphere(tile.transform.position, .5f);
+					Gizmos.DrawWireSphere(tile.transform.position, tileSize * .5f);
 				}
 			}
 		}
