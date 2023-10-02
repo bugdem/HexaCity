@@ -35,25 +35,38 @@ namespace ClocknestGames.Game.Core
 																		LandTilePartType.Grass
 																	};
 
+		// This variable is hold for editor inserting/removing.
+		[ReadOnly] public Vector3Int PlacedCubeIndex;
 		public HexTile PlacedTile { get; private set; }
+		public bool IsPlaced => PlacedTile != null;
 		public int PlacementRotationIndex { get; private set; }
 
 		private List<LandTilePart> _parts;
 		private List<PathSetting> _paths;
+
+#if UNITY_EDITOR
+		[HorizontalGroup("Split", 0.5f)]
+		[Button(ButtonSizes.Large), GUIColor(0.4f, 0.8f, 1)]
+		public void ChangeGeneratedTileEditor()
+		{
+			TileManager.Get().ChangeGeneratedTileEditor(_landTileParts);
+			GenerateTile(_landTileParts);
+		}
+
+		[VerticalGroup("Split/right")]
+		[Button(ButtonSizes.Large), GUIColor(0, 1, 0)]
+		public void GenerateTileEditor()
+		{
+			bool isGenerated = GenerateTile();
+			transform.localScale = Vector3.one * HexGrid.Get().TileSize;
+		}
+#endif
 
 		public bool GenerateTile(List<LandTilePartType> newTileParts)
 		{
 			_landTileParts = newTileParts;
 
 			return GenerateTile();
-		}
-
-		[Button]
-		public bool GenerateTileEditor()
-		{
-			bool isGenerated = GenerateTile();
-			transform.localScale = Vector3.one * HexGrid.Get().TileSize;
-			return isGenerated;
 		}
 
 		public bool GenerateTile()
@@ -182,6 +195,55 @@ namespace ClocknestGames.Game.Core
 		{
 			PlacedTile = tile;
 			PlacementRotationIndex = rotationIndex;
+			PlacedCubeIndex = tile.CubeIndex;
+
+			if (_paths != null)
+			{
+				// Add path node junctions.
+				for (int index = 0; index < _paths.Count; index++)
+				{
+					var path = _paths[index];
+
+				}
+			}
+
+			for (int partIndex = 0; partIndex <= 6; partIndex++)
+			{
+				_parts[partIndex].OnPlaced();
+			}
+		}
+
+		public int ConvertDirectionToPartIndex(int direction)
+		{
+			// If center tile, return it.
+			if (direction == 6) return direction;
+			// Remove rotation from direction.
+			return (6 - direction + PlacementRotationIndex) % 6;
+		}
+
+		public int ConvertPartIndexToDirection(int partIndex)
+		{
+			// If center tile, return it.
+			if (partIndex == 6) return partIndex;
+			// Add rotation to part index.
+			return (PlacementRotationIndex + partIndex) % 6;
+		}
+
+		public LandTilePart GetLandTilePartOnDirection(int direction)
+		{
+			return _parts[ConvertDirectionToPartIndex(direction)];
+		}
+
+		public LandTilePart GetNeighbourLandTilePart(int direction)
+		{
+			var partEdge = HexGrid.Get().GetEdge(transform.position, direction);
+			var neighbourEdge = HexGrid.Get().GetNeigbourEdge(partEdge);
+			var neighbourLandTile = TileManager.Get().GetPlacedLandTile(neighbourEdge.hexCubeIndex);
+			if (neighbourLandTile != null)
+			{
+				return neighbourLandTile.GetLandTilePartOnDirection(neighbourEdge.index);
+			}
+			return null;
 		}
 	}
 }

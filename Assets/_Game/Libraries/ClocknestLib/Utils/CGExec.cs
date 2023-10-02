@@ -109,5 +109,13 @@ namespace ClocknestGames.Game.Core
 				yield return wait;
 			}
 		}
+
+		public static TResult RunInMode<TResult>(Func<TResult> playMode, Func<TResult> editorMode)
+		{
+#if UNITY_EDITOR
+			return Application.isPlaying ? playMode.Invoke() : editorMode.Invoke();
+#endif
+			return playMode.Invoke();
+		}
 	}
 }

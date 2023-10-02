@@ -14,6 +14,7 @@ namespace ClocknestGames.Game.Core
 
         public LandTile LandTile { get; private set; }
         public int PartIndex { get; private set; }
+        public int Direction => LandTile.ConvertPartIndexToDirection(PartIndex);
         public bool IsCenterPart => PartIndex == 6;
 
         public void Initialize(LandTile landTile, int partIndex)
@@ -44,5 +45,6 @@ namespace ClocknestGames.Game.Core
 
         protected virtual void OnInitialized() { }
         protected virtual void OnLayout() { }
+        public virtual void OnPlaced() { }
     }
 }

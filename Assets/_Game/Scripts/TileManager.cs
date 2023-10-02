@@ -33,9 +33,18 @@ namespace ClocknestGames.Game.Core
 		[SerializeField] private float _swipeMininumDistance = .2f;
 		[SerializeField] private float _swipeMaximumTime = 1f;
 		[SerializeField] private float _swipeDirectionThreshold = .9f;
+		[SerializeField, ReadOnly] private List<LandTile> _startingTiles;
 
 		[Header("Editor")]
 		[SerializeField, Range(0, 5)] private int _editorEdgeIndex;
+		[SerializeField] private bool _isEditorSceneControlsActive = false;
+
+		public bool IsEditorSceneControlsActive 
+		{
+			get => _isEditorSceneControlsActive;
+			set => _isEditorSceneControlsActive = value;
+		}
+		public List<LandTile> StartingTiles => _startingTiles;
 
 		private HexTile _selectedTile = null;
 		private Plane _gridTouchPlane;
@@ -69,7 +78,7 @@ namespace ClocknestGames.Game.Core
 
 		private void Start()
 		{
-			_gridTouchPlane = new Plane(HexGrid.Instance.transform.up, HexGrid.Instance.transform.position);
+			_gridTouchPlane = new Plane(HexGrid.Get().transform.up, HexGrid.Get().transform.position);
 
 			for (int index = 0; index < 4; index++)
 			{
@@ -79,36 +88,52 @@ namespace ClocknestGames.Game.Core
 
 		private void Update()
 		{
+			_gridTouchPlane = new Plane(HexGrid.Get().transform.up, HexGrid.Get().transform.position);
 			// CGDebug.DrawPlane(HexGrid.Instance.transform.position, _gridTouchPlane.normal);
-			Ray ray = new Ray(CameraHandler.Instance.transform.position, CameraHandler.Instance.transform.forward);
+			Ray ray = new Ray(CameraHandler.Get().transform.position, CameraHandler.Get().transform.forward);
 			if (_gridTouchPlane.Raycast(ray, out float enter))
 			{
 				Vector3 hitPoint = ray.GetPoint(enter);
-				CameraHandler.Instance.SetRotatePivotPosition(hitPoint);
+				CameraHandler.Get().SetRotatePivotPosition(hitPoint);
 			}
 		}
 
-		public static TileManager Get()
+#if UNITY_EDITOR
+		public void ChangeGeneratedTileEditor(List<LandTilePartType> newTileParts)
 		{
-			return Application.isPlaying ? TileManager.Instance : FindObjectOfType<TileManager>();
+			if (Application.isPlaying)
+			{
+				_tilesWaitingToBePlaced[0].GenerateTile(newTileParts);
+			}
 		}
+#endif
 
 		public SplineComputer GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
 		{
 			return _landTilePartPathSettings.First(x => x.PathType == pathType).Paths[partIndexDiff - 1];
 		}
 
-		private LandTile CreateTile()
+		public LandTile CreateTile(HexTile onHexTile = null)
+		{
+			return CreateTile(GenerateLandTilePartTypes(), onHexTile);
+		}
+
+		public LandTile CreateTile(List<LandTilePartType> partTypes, HexTile onHexTile = null)
 		{
 			LandTile newTile = Instantiate(_landTilePrefab, _landTileContainer);
-			newTile.GenerateTile(GenerateLandTilePartTypes());
-			newTile.transform.localScale = HexGrid.Instance.GetTileScale();
+			newTile.GenerateTile(partTypes);
+			newTile.transform.localScale = HexGrid.Get().GetTileScale();
 			newTile.gameObject.SetActive(false);
+			if (onHexTile != null)
+			{
+				newTile.PlacedCubeIndex = onHexTile.CubeIndex;
+				PlaceLandTileOnHexTile(newTile, onHexTile);
+			}
 
 			return newTile;
 		}
 
-		private List<LandTilePartType> GenerateLandTilePartTypes()
+		public List<LandTilePartType> GenerateLandTilePartTypes()
 		{
 			List<LandTilePartType> partTypes = new List<LandTilePartType>();
 			for (int index = 0; index < 7; index++)
@@ -126,6 +151,19 @@ namespace ClocknestGames.Game.Core
 			var prefab = landTilePartSetting.Prefab;
 			var landTilePart = Instantiate(prefab);
 			return landTilePart;
+		}
+
+		public LandTile GetPlacedLandTile(Vector3Int cubeIndex)
+		{
+			_placedTiles.TryGetValue(cubeIndex, out var landTile);
+			return landTile;
+		}
+
+		public void PlaceLandTileOnHexTile(LandTile landTile, HexTile hexTile)
+		{
+			landTile.transform.rotation = hexTile.transform.rotation;
+			landTile.transform.position = hexTile.transform.position + hexTile.transform.up * .1f * HexGrid.Get().TileSize;
+			landTile.gameObject.SetActive(true);
 		}
 
 		private void OnScreenTouchDown()
@@ -161,13 +199,13 @@ namespace ClocknestGames.Game.Core
 			HexTile hexTileToSelect = null;
 			List<HexTile> tilesOnRadius = null;
 
-			var ray = Camera.main.ScreenPointToRay(InputManager.TouchPosition);
+			var ray = CameraHandler.Get().CurrentCamera.ScreenPointToRay(InputManager.TouchPosition);
 			if (_gridTouchPlane.Raycast(ray, out float enter))
 			{
 				Vector3 hitPoint = ray.GetPoint(enter);
 				_touchWorldPosition = hitPoint;
 
-				hexTileToSelect = HexGrid.Instance.GetTileFromPosition(hitPoint);
+				hexTileToSelect = HexGrid.Get().GetTileFromPosition(hitPoint);
 				if (hexTileToSelect != null)
 				{
 					Debug.Log($"Hex: {hexTileToSelect.CubeIndex.x},{hexTileToSelect.CubeIndex.y},{hexTileToSelect.CubeIndex.z}");
@@ -180,16 +218,14 @@ namespace ClocknestGames.Game.Core
 					_placingLandTileRotationIndex = 0;
 					if (!_placedTiles.ContainsKey(hexTileToSelect.CubeIndex))
 					{
-						CameraHandler.Instance.IsControlEnabled = false;
+						CameraHandler.Get().IsControlEnabled = false;
 
 						// If player is too quick to select while in rotate animation, finish rotation immediately.
 						if (_placingLandTileRotateTweener != null)
 							_placingLandTileRotateTweener.Kill(true);
 
 						_placingLandTile = _tilesWaitingToBePlaced[0];
-						_placingLandTile.transform.rotation = hexTileToSelect.transform.rotation;
-						_placingLandTile.transform.position = hexTileToSelect.transform.position + hexTileToSelect.transform.up * .1f * HexGrid.Instance.TileSize;
-						_placingLandTile.gameObject.SetActive(true);
+						PlaceLandTileOnHexTile(_placingLandTile, hexTileToSelect);
 					}
 					else
 					{
@@ -199,7 +235,7 @@ namespace ClocknestGames.Game.Core
 							_placingLandTile = null;
 						}
 
-						CameraHandler.Instance.IsControlEnabled = true;
+						CameraHandler.Get().IsControlEnabled = true;
 					}
 				}
 			}
@@ -243,7 +279,7 @@ namespace ClocknestGames.Game.Core
 			var placingTile = _tilesWaitingToBePlaced[0];
 			placingTile.OnPlacedOnTile(_selectedTile, _placingLandTileRotationIndex);
 
-			HexGrid.Instance.AddTilesAroundTile(_selectedTile);
+			HexGrid.Get().AddTilesAroundTile(_selectedTile);
 
 			_tilesWaitingToBePlaced.RemoveAt(0);
 			_tilesWaitingToBePlaced.Add(CreateTile());
@@ -254,7 +290,7 @@ namespace ClocknestGames.Game.Core
 			_selectedTile = null;
 			_placingLandTile = null;
 
-			CameraHandler.Instance.IsControlEnabled = true;
+			CameraHandler.Get().IsControlEnabled = true;
 		}
 
 		public void OnPlacementCancelButtonClicked()
@@ -264,7 +300,7 @@ namespace ClocknestGames.Game.Core
 			_placingLandTile = null;
 			_selectedTile = null;
 
-			CameraHandler.Instance.IsControlEnabled = true;
+			CameraHandler.Get().IsControlEnabled = true;
 		}
 
 		private void OnEnable()

@@ -8,6 +8,9 @@ using static UnityEngine.UI.GridLayoutGroup;
 
 namespace ClocknestGames.Game.Core
 {
+	[Serializable]
+	public class HexGridDictionary : UnitySerializedDictionary<Vector3Int, HexTile> { }
+
 	// Hexagon grid generator class.
 	// To see formulas used, check https://www.redblobgames.com/grids/hexagons/
 	public class HexGrid : Singleton<HexGrid>
@@ -19,19 +22,16 @@ namespace ClocknestGames.Game.Core
 		[SerializeField] private bool _scaleHexWithTileSize = false;
 		[SerializeField, EnableIf("_scaleHexWithTileSize"), Range(0.1f, 1f)] private float _hexScale = 1f;
 		[SerializeField] private HexTile _tilePrefab;
+		[SerializeField] private HexGridDictionary _tiles;
 
 		public float TileSize => _tileSize;
 		public float TileRadius => TileSize * .5f;
 
-		private Dictionary<Vector3Int, HexTile> _tiles = new();
+		// private Dictionary<Vector3Int, HexTile> _tiles = new();
 		private Layout _gridLayout;
 
-		public static HexGrid Get()
-		{
-			return Application.isPlaying ? HexGrid.Instance : FindObjectOfType<HexGrid>();
-		}
-
-		[Button]
+		[HorizontalGroup("Split", 0.5f)]
+		[Button(ButtonSizes.Large), GUIColor(0.4f, 0.8f, 1)]
 		private void LayoutGrid()
 		{
 			ClearGrid();
@@ -56,6 +56,18 @@ namespace ClocknestGames.Game.Core
 			*/
 
 			AddTilesAroundTile(Vector3Int.zero, _radiusOnStart);
+		}
+
+		[VerticalGroup("Split/right")]
+		[Button(ButtonSizes.Large), GUIColor(0, 1, 0)]
+		private void ClearGrid()
+		{
+			bool destroyChildImmediately = !Application.isPlaying;
+			transform.gameObject.RemoveAllChild(destroyChildImmediately);
+
+			_gridLayout = CreateLayout();
+
+			_tiles.Clear();
 		}
 
 		public void AddTilesAroundTile(HexTile aroundTile)
@@ -163,16 +175,6 @@ namespace ClocknestGames.Game.Core
 			}
 		}
 
-		private void ClearGrid()
-		{
-			bool destroyChildImmediately = !Application.isPlaying;
-			transform.gameObject.RemoveAllChild(destroyChildImmediately);
-
-			_gridLayout = CreateLayout();
-
-			_tiles.Clear();
-		}
-
 		public Vector3 GetTileScale()
 		{
 			return Vector3.one * TileSize;
@@ -232,7 +234,7 @@ namespace ClocknestGames.Game.Core
 
 		private Layout GetLayout()
 		{
-			return Application.isPlaying ? _gridLayout : CreateLayout();
+			return CGExec.RunInMode<Layout>(() => _gridLayout, () => CreateLayout());
 		}
 
 		private Layout CreateLayout()

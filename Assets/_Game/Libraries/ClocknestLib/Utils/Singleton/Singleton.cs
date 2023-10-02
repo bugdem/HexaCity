@@ -30,10 +30,15 @@ namespace ClocknestGames.Library.Utils
             }
         }
 
-        /// <summary>
-        /// On awake, we initialize our instance. Make sure to call base.Awake() in override if you need awake.
-        /// </summary>
-        protected virtual void Awake()
+		public static T Get()
+		{
+			return Application.isPlaying ? Instance : FindObjectOfType<T>();
+		}
+
+		/// <summary>
+		/// On awake, we initialize our instance. Make sure to call base.Awake() in override if you need awake.
+		/// </summary>
+		protected virtual void Awake()
         {
             if (!Application.isPlaying)
             {
