@@ -117,5 +117,18 @@ namespace ClocknestGames.Game.Core
 #endif
 			return playMode.Invoke();
 		}
+
+		public static void RunInMode(Action playMode, Action editorMode)
+		{
+#if UNITY_EDITOR
+			if (Application.isPlaying)
+				playMode.Invoke();
+			else
+				editorMode.Invoke();
+
+			return;
+#endif
+			playMode.Invoke();
+		}
 	}
 }

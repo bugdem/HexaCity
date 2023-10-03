@@ -2,6 +2,7 @@ using ClocknestGames.Library.Utils;
 using DG.Tweening;
 using Dreamteck.Splines;
 using Sirenix.OdinInspector;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,10 @@ namespace ClocknestGames.Game.Core
 		public List<SplineComputer> Paths;
 	}
 
-    public class TileManager : Singleton<TileManager>
+	[Serializable]
+	public class LandTileDictionary : UnitySerializedDictionary<Vector3Int, LandTile> { }
+
+	public class TileManager : Singleton<TileManager>
     {
 		[SerializeField] private LandTile _landTilePrefab;
 		[SerializeField] private Transform _landTileContainer;
@@ -33,26 +37,16 @@ namespace ClocknestGames.Game.Core
 		[SerializeField] private float _swipeMininumDistance = .2f;
 		[SerializeField] private float _swipeMaximumTime = 1f;
 		[SerializeField] private float _swipeDirectionThreshold = .9f;
-		[SerializeField, ReadOnly] private List<LandTile> _startingTiles;
+		[SerializeField, ReadOnly] private LandTileDictionary _placedTiles;
 
 		[Header("Editor")]
 		[SerializeField, Range(0, 5)] private int _editorEdgeIndex;
-		[SerializeField] private bool _isEditorSceneControlsActive = false;
-
-		public bool IsEditorSceneControlsActive 
-		{
-			get => _isEditorSceneControlsActive;
-			set => _isEditorSceneControlsActive = value;
-		}
-		public List<LandTile> StartingTiles => _startingTiles;
 
 		private HexTile _selectedTile = null;
 		private Plane _gridTouchPlane;
 		private Vector3 _touchWorldPosition;
 		private List<HexTile> _tilesOnRadius;
 		private Dictionary<LandTilePartType, LandTilePartSetting> _landTilePartSettingDic = new();
-
-		private Dictionary<Vector3Int, LandTile> _placedTiles = new();
 		private List<LandTile> _tilesWaitingToBePlaced = new();
 		private LandTile _placingLandTile;
 		private int _placingLandTileRotationIndex;
@@ -108,6 +102,39 @@ namespace ClocknestGames.Game.Core
 		}
 #endif
 
+		/// <summary>
+		/// Removes land tile on index.
+		/// </summary>
+		/// <param name="cubeIndex">Index that tile.</param>
+		/// <param name="destroyTile">Destroys tile if true(Always true in runtime).</param>
+		/// <returns></returns>
+		public bool RemoveLandTile(Vector3Int cubeIndex, bool destroyTile = true)
+		{
+			if (_placedTiles.TryGetValue(cubeIndex, out LandTile landTile))
+			{
+				_placedTiles.Remove(cubeIndex);
+
+				// destroyTile variable only works on editor to prevent inconsistency in runtime.
+				CGExec.RunInMode(() => GameObject.Destroy(landTile.gameObject)
+							, () => {
+								if (destroyTile)
+									GameObject.DestroyImmediate(landTile.gameObject);
+								});
+				return true;
+			}
+			return false;
+		}
+
+		[HorizontalGroup("Split", 0.5f)]
+		[Button(ButtonSizes.Large), GUIColor(1f, 0f, 0f)]
+		public void RemoveAllLandTiles()
+		{
+			foreach (var landTileKey in _placedTiles.Keys.ToList())
+			{
+				RemoveLandTile(landTileKey);
+			}
+		}
+
 		public SplineComputer GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
 		{
 			return _landTilePartPathSettings.First(x => x.PathType == pathType).Paths[partIndexDiff - 1];
@@ -126,7 +153,8 @@ namespace ClocknestGames.Game.Core
 			newTile.gameObject.SetActive(false);
 			if (onHexTile != null)
 			{
-				newTile.PlacedCubeIndex = onHexTile.CubeIndex;
+				newTile.OnPlacedOnTileEditor(onHexTile.CubeIndex, 0);
+				_placedTiles.Add(onHexTile.CubeIndex, newTile);
 				PlaceLandTileOnHexTile(newTile, onHexTile);
 			}
 

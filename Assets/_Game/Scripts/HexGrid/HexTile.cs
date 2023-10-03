@@ -6,13 +6,14 @@ namespace ClocknestGames.Game.Core
 {
     public class HexTile : MonoBehaviour
     {
-        [SerializeField] private TMPro.TextMeshPro _text;
+		[SerializeField] private Vector3Int _cubeIndex;
+		[SerializeField] private TMPro.TextMeshPro _text;
 
-        public Vector3Int CubeIndex { get; private set; }
+        public Vector3Int CubeIndex => _cubeIndex;
 
-        public void SetTile(Vector3Int cubeIndex)
+		public void SetTile(Vector3Int cubeIndex)
         {
-			CubeIndex = cubeIndex;
+			_cubeIndex = cubeIndex;
 
             _text.SetText($"{CubeIndex.x},{CubeIndex.y},{CubeIndex.z}");
         }

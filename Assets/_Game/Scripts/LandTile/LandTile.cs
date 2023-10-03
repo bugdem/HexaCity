@@ -35,11 +35,30 @@ namespace ClocknestGames.Game.Core
 																		LandTilePartType.Grass
 																	};
 
-		// This variable is hold for editor inserting/removing.
-		[ReadOnly] public Vector3Int PlacedCubeIndex;
-		public HexTile PlacedTile { get; private set; }
+		[Header("Editor")]
+		[SerializeField, ReadOnly] private Vector3Int _placedCubeIndex;
+		[SerializeField, ReadOnly] private int _placementRotationIndex;
+		[SerializeField, ReadOnly] private HexTile _placedTile;
+
+		public Vector3Int PlacedCubeIndex
+		{
+			get => _placedCubeIndex;
+			private set => _placedCubeIndex = value;
+		}
+
+		public int PlacementRotationIndex
+		{
+			get => _placementRotationIndex;
+			private set => _placementRotationIndex = value;
+		}
+
+		public HexTile PlacedTile
+		{
+			get => _placedTile;
+			private set => _placedTile = value;
+		}
+
 		public bool IsPlaced => PlacedTile != null;
-		public int PlacementRotationIndex { get; private set; }
 
 		private List<LandTilePart> _parts;
 		private List<PathSetting> _paths;
@@ -191,11 +210,18 @@ namespace ClocknestGames.Game.Core
 				*/
 		}
 
+		public void OnPlacedOnTileEditor(Vector3Int cubeIndex, int rotationIndex)
+		{
+			PlacementRotationIndex = rotationIndex;
+			PlacedCubeIndex = cubeIndex;
+			PlacedTile = HexGrid.Get().GetTile(cubeIndex);
+		}
+
 		public void OnPlacedOnTile(HexTile tile, int rotationIndex)
 		{
-			PlacedTile = tile;
 			PlacementRotationIndex = rotationIndex;
 			PlacedCubeIndex = tile.CubeIndex;
+			PlacedTile = tile;
 
 			if (_paths != null)
 			{

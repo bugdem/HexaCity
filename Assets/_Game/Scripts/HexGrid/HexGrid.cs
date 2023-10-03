@@ -59,7 +59,7 @@ namespace ClocknestGames.Game.Core
 		}
 
 		[VerticalGroup("Split/right")]
-		[Button(ButtonSizes.Large), GUIColor(0, 1, 0)]
+		[Button(ButtonSizes.Large), GUIColor(1, 0, 0)]
 		private void ClearGrid()
 		{
 			bool destroyChildImmediately = !Application.isPlaying;
