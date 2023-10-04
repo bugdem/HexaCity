@@ -26,6 +26,8 @@ namespace ClocknestGames.Game.Core
 
 		public float TileSize => _tileSize;
 		public float TileRadius => TileSize * .5f;
+		public int RadiusOnStart => _radiusOnStart;
+		public int RadiusOnPlace => _radiusOnPlace;
 
 		// private Dictionary<Vector3Int, HexTile> _tiles = new();
 		private Layout _gridLayout;
@@ -62,22 +64,10 @@ namespace ClocknestGames.Game.Core
 		[Button(ButtonSizes.Large), GUIColor(1, 0, 0)]
 		private void ClearGrid()
 		{
-			bool destroyChildImmediately = !Application.isPlaying;
-			transform.gameObject.RemoveAllChild(destroyChildImmediately);
-
+			CGExec.RunInMode(() => transform.gameObject.RemoveAllChild(false), () => transform.gameObject.RemoveAllChild(true));
 			_gridLayout = CreateLayout();
 
 			_tiles.Clear();
-		}
-
-		public void AddTilesAroundTile(HexTile aroundTile)
-		{
-			AddTilesAroundTile(aroundTile, _radiusOnPlace);
-		}
-
-		public void AddTilesAroundTile(HexTile aroundTile, int radius)
-		{
-			AddTilesAroundTile(GetCubeIndex(aroundTile), radius);
 		}
 
 		public HexTile GetTile(Vector3Int cubeIndex)
@@ -94,12 +84,17 @@ namespace ClocknestGames.Game.Core
 			return hexTile;
 		}
 
-		public List<HexTile> GetTilesInsideRadius(HexTile aroundTile, int radius)
+		public List<HexTile> GetTilesInsideRadius(HexTile aroundTile, int radius, bool includeTarget = false)
 		{
-			return GetTilesInsideRadius(aroundTile.CubeIndex, radius);
+			return GetTilesInsideRadius(aroundTile.CubeIndex, radius, includeTarget);
 		}
 
-		private List<HexTile> GetTilesInsideRadius(Vector3Int aroundCubeIndex, int radius)
+		public List<HexTile> GetTilesInsideRadius(Vector3Int aroundCubeIndex, bool includeTarget = false)
+		{
+			return GetTilesInsideRadius(aroundCubeIndex, _radiusOnPlace, includeTarget);
+		}
+
+		public List<HexTile> GetTilesInsideRadius(Vector3Int aroundCubeIndex, int radius, bool includeTarget)
 		{
 			List<HexTile> tiles = new();
 
@@ -107,6 +102,9 @@ namespace ClocknestGames.Game.Core
 			{
 				tiles.AddRange(GetTilesOnRadius(aroundCubeIndex, ringIndex));
 			}
+
+			if (includeTarget && _tiles.TryGetValue(aroundCubeIndex, out HexTile targetHexTile))
+				tiles.Add(targetHexTile);
 
 			return tiles;
 		}
@@ -139,8 +137,20 @@ namespace ClocknestGames.Game.Core
 			return tiles;
 		}
 
-		public void AddTilesAroundTile(Vector3Int aroundCubeIndex, int radius)
+		public HexGridDictionary AddTilesAroundTile(HexTile aroundTile)
 		{
+			return AddTilesAroundTile(aroundTile, _radiusOnPlace);
+		}
+
+		public HexGridDictionary AddTilesAroundTile(HexTile aroundTile, int radius)
+		{
+			return AddTilesAroundTile(GetCubeIndex(aroundTile), radius);
+		}
+
+		public HexGridDictionary AddTilesAroundTile(Vector3Int aroundCubeIndex, int radius)
+		{
+			HexGridDictionary addedTiles = new();
+
 			int layerCount = radius;
 			Hex startHex = aroundCubeIndex.ToHex();
 
@@ -171,8 +181,35 @@ namespace ClocknestGames.Game.Core
 					newTile.SetTile(cubeIndex);
 
 					_tiles.Add(cubeIndex, newTile);
+
+					addedTiles.Add(cubeIndex, newTile);
 				}
 			}
+
+			return addedTiles;
+		}
+
+		/// <summary>
+		/// Removes hex tile on index.
+		/// </summary>
+		/// <param name="cubeIndex">Index that tile.</param>
+		/// <param name="destroyTile">Destroys tile if true(Always true in runtime).</param>
+		/// <returns></returns>
+		public bool RemoveHexTile(Vector3Int cubeIndex, bool destroyTile = true)
+		{
+			if (_tiles.TryGetValue(cubeIndex, out HexTile hexTile))
+			{
+				_tiles.Remove(cubeIndex);
+
+				// destroyTile variable only works on editor to prevent inconsistency in runtime.
+				CGExec.RunInMode(() => GameObject.Destroy(hexTile.gameObject)
+							, () => {
+								if (destroyTile)
+									GameObject.DestroyImmediate(hexTile.gameObject);
+							});
+				return true;
+			}
+			return false;
 		}
 
 		public Vector3 GetTileScale()
@@ -322,11 +359,17 @@ namespace ClocknestGames.Game.Core
 			*/
 		}
 
+		public int GetDistance(Vector3Int cubeIndex1, Vector3Int cubeIndex2)
+		{
+			return cubeIndex1.ToHex().Distance(cubeIndex2.ToHex());
+		}
+
 		private void OnEnable()
 		{
 			LayoutGrid();
 		}
 
+		/*
 		private void OnValidate()
 		{
 			if (Application.isPlaying)
@@ -334,6 +377,7 @@ namespace ClocknestGames.Game.Core
 				LayoutGrid();
 			}
 		}
+		*/
 	}
 
 	static class Extensions

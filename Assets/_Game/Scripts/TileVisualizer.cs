@@ -81,14 +81,39 @@ namespace ClocknestGames.Game.Core
 					{
 						if (landTileOnPoint != null)
 						{
+							Vector3Int targetCubeIndex = landTileOnPoint.PlacedCubeIndex;
 							Undo.IncrementCurrentGroup();
+
+							var hexTiles = HexGrid.Get().GetTilesInsideRadius(targetCubeIndex, false);
+							foreach (var hexTile in hexTiles.ToArray()) 
+							{
+								bool removeHexTile = true;
+								var placedLandTiles = tileManager.GetPlacedLandTiles();
+								foreach (var placedLandTile in placedLandTiles.Values)
+								{
+									if (placedLandTile == landTileOnPoint)
+										continue;
+
+									if (HexGrid.Get().GetDistance(hexTile.CubeIndex, placedLandTile.PlacedCubeIndex) <= HexGrid.Get().RadiusOnPlace)
+									{
+										removeHexTile = false;
+										break;
+									}
+								}
+
+								if (removeHexTile && HexGrid.Get().GetDistance(Vector3Int.zero, hexTile.CubeIndex) > HexGrid.Get().RadiusOnStart)
+								{
+									Undo.RegisterCompleteObjectUndo(HexGrid.Get(), $"Remove Hex Tile(HexGrid): {targetCubeIndex}");
+									HexGrid.Get().RemoveHexTile(hexTile.CubeIndex, false);
+									Undo.DestroyObjectImmediate(hexTile.gameObject);
+								}
+							}
+
 							Undo.RecordObject(tileManager, $"Remove Land Tile(TileManager): {landTileOnPoint.PlacedCubeIndex}");
 							tileManager.RemoveLandTile(landTileOnPoint.PlacedCubeIndex, false);
-
 							Undo.DestroyObjectImmediate(landTileOnPoint.gameObject);
 
 							EditorUtility.SetDirty(tileManager);
-							// Name undo group
 							Undo.SetCurrentGroupName($"Remove land tile: {landTileOnPoint.PlacedCubeIndex}");
 
 							// Tell the UI your event is the main one to use, it override the selection in  the scene view
@@ -103,10 +128,20 @@ namespace ClocknestGames.Game.Core
 						{
 							if (landTileOnPoint == null)
 							{
+								Undo.IncrementCurrentGroup();
+
 								Undo.RecordObject(tileManager, $"Create Land Tile(TileManager): {hexTileOnPoint.CubeIndex}");
 								var newLandTile = tileManager.CreateTile(hexTileOnPoint);
+								newLandTile.name = $"Land {hexTileOnPoint.CubeIndex.x},{hexTileOnPoint.CubeIndex.y},{hexTileOnPoint.CubeIndex.z}";
 								Undo.RegisterCreatedObjectUndo(newLandTile.gameObject, $"Create Land Tile: {hexTileOnPoint.CubeIndex}");
+
+								Undo.RecordObject(HexGrid.Get(), $"Create Hex Tile(HexGrid): {hexTileOnPoint.CubeIndex}");
+								var newHexTiles = HexGrid.Get().AddTilesAroundTile(hexTileOnPoint);
+								foreach (var newHexTile in newHexTiles.Values)
+									Undo.RegisterCreatedObjectUndo(newHexTile.gameObject, $"Create Hex Tile: {newHexTile.CubeIndex}");
+
 								EditorUtility.SetDirty(tileManager);
+								Undo.SetCurrentGroupName($"Add land tile: {newLandTile.PlacedCubeIndex}");
 
 								Selection.activeGameObject = newLandTile.gameObject;
 								GUIUtility.hotControl = controlId;

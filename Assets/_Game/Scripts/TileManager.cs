@@ -74,6 +74,11 @@ namespace ClocknestGames.Game.Core
 		{
 			_gridTouchPlane = new Plane(HexGrid.Get().transform.up, HexGrid.Get().transform.position);
 
+			foreach (var placedTile in _placedTiles.Values)
+			{
+				placedTile.OnPlacedOnTile(placedTile.PlacedTile, placedTile.PlacementRotationIndex);
+			}
+
 			for (int index = 0; index < 4; index++)
 			{
 				_tilesWaitingToBePlaced.Add(CreateTile());
@@ -135,6 +140,14 @@ namespace ClocknestGames.Game.Core
 			}
 		}
 
+		public LandTileDictionary GetPlacedLandTiles()
+		{
+			LandTileDictionary newPlacedTiles = new();
+			foreach (var placedTile in _placedTiles)
+				newPlacedTiles.Add(placedTile.Key, placedTile.Value);
+			return newPlacedTiles;
+		}
+
 		public SplineComputer GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
 		{
 			return _landTilePartPathSettings.First(x => x.PathType == pathType).Paths[partIndexDiff - 1];
@@ -147,7 +160,8 @@ namespace ClocknestGames.Game.Core
 
 		public LandTile CreateTile(List<LandTilePartType> partTypes, HexTile onHexTile = null)
 		{
-			LandTile newTile = Instantiate(_landTilePrefab, _landTileContainer);
+			LandTile newTile = CGExec.RunInMode<LandTile>(() => Instantiate(_landTilePrefab, _landTileContainer)
+														, () => UnityEditor.PrefabUtility.InstantiatePrefab(_landTilePrefab, _landTileContainer) as LandTile);
 			newTile.GenerateTile(partTypes);
 			newTile.transform.localScale = HexGrid.Get().GetTileScale();
 			newTile.gameObject.SetActive(false);
