@@ -12,6 +12,7 @@ namespace ClocknestGames.Game.Core
 	{
 		[InfoBox("Enables tile editing controls. If enabled, mouse left click on a hex tile will add new tile while ctrl + mouse left click removes it.")]
 		[SerializeField] private bool _isEditorSceneControlsActive = false;
+		[SerializeField] private bool _disableControlsOnPlay = true;
 		[SerializeField, HideInInspector] private bool _isCtrlKeyDown;
 
 		public bool IsEditorSceneControlsActive
@@ -44,7 +45,7 @@ namespace ClocknestGames.Game.Core
 				_isCtrlKeyDown = false;
 			}
 
-			if (!IsEditorSceneControlsActive) return;
+			if ((_disableControlsOnPlay && Application.isPlaying) || !IsEditorSceneControlsActive) return;
 
 			// Retrieve the control Id
 			int controlId = GUIUtility.GetControlID(FocusType.Passive);
@@ -60,8 +61,10 @@ namespace ClocknestGames.Game.Core
 				mousePos.y = scene.camera.pixelHeight - mousePos.y * ppp;
 				mousePos.x *= ppp;
 
+				Debug.Log("MPos: " + e.mousePosition.ToString("F1"));
+
 				var plane = new Plane(HexGrid.Get().transform.up, HexGrid.Get().transform.position);
-				Ray ray = HandleUtility.GUIPointToWorldRay(Mouse.current.position.ReadValue());
+				Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
 				LandTile landTileOnPoint = null;
 				HexTile hexTileOnPoint = null;
 				if (plane.Raycast(ray, out float enter))

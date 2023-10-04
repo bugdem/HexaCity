@@ -39,6 +39,8 @@ namespace ClocknestGames.Game.Core
 		[SerializeField, ReadOnly] private Vector3Int _placedCubeIndex;
 		[SerializeField, ReadOnly] private int _placementRotationIndex;
 		[SerializeField, ReadOnly] private HexTile _placedTile;
+		[SerializeField, ReadOnly] private List<LandTilePart> _parts;
+		[SerializeField, ReadOnly] private List<PathSetting> _paths;
 
 		public Vector3Int PlacedCubeIndex
 		{
@@ -60,8 +62,7 @@ namespace ClocknestGames.Game.Core
 
 		public bool IsPlaced => PlacedTile != null;
 
-		private List<LandTilePart> _parts;
-		private List<PathSetting> _paths;
+
 
 #if UNITY_EDITOR
 		[HorizontalGroup("Split", 0.5f)]

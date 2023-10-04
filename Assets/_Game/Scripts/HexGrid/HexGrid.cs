@@ -65,9 +65,14 @@ namespace ClocknestGames.Game.Core
 		private void ClearGrid()
 		{
 			CGExec.RunInMode(() => transform.gameObject.RemoveAllChild(false), () => transform.gameObject.RemoveAllChild(true));
-			_gridLayout = CreateLayout();
-
 			_tiles.Clear();
+
+			PrepareGrid();
+		}
+
+		private void PrepareGrid()
+		{
+			_gridLayout = CreateLayout();
 		}
 
 		public HexTile GetTile(Vector3Int cubeIndex)
@@ -366,7 +371,9 @@ namespace ClocknestGames.Game.Core
 
 		private void OnEnable()
 		{
-			LayoutGrid();
+			PrepareGrid();
+
+			// LayoutGrid();
 		}
 
 		/*

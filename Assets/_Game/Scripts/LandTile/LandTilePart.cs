@@ -1,3 +1,4 @@
+using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,11 +10,22 @@ namespace ClocknestGames.Game.Core
         [SerializeField] protected Transform _centerPoint;
         [SerializeField] protected Transform _cornerPoint;
         [SerializeField] protected Transform _content;
+        [SerializeField, ReadOnly] protected LandTile _landTile;
+        [SerializeField, ReadOnly] protected int _partIndex;
 
         public abstract LandTilePartType PartType { get; }
 
-        public LandTile LandTile { get; private set; }
-        public int PartIndex { get; private set; }
+        public LandTile LandTile
+        {
+            get => _landTile;
+            private set => _landTile = value;
+        }
+        public int PartIndex
+        {
+            get => _partIndex;
+            private set => _partIndex = value;
+        }
+
         public int Direction => LandTile.ConvertPartIndexToDirection(PartIndex);
         public bool IsCenterPart => PartIndex == 6;
 
