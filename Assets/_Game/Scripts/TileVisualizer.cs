@@ -56,13 +56,6 @@ namespace ClocknestGames.Game.Core
 
 			if (isMouseClicked || isScrolled)
 			{
-				Vector3 mousePos = e.mousePosition;
-				float ppp = EditorGUIUtility.pixelsPerPoint;
-				mousePos.y = scene.camera.pixelHeight - mousePos.y * ppp;
-				mousePos.x *= ppp;
-
-				Debug.Log("MPos: " + e.mousePosition.ToString("F1"));
-
 				var plane = new Plane(HexGrid.Get().transform.up, HexGrid.Get().transform.position);
 				Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
 				LandTile landTileOnPoint = null;
@@ -185,6 +178,11 @@ namespace ClocknestGames.Game.Core
 					}
 				}
 			}
+		}
+
+		private void OnValidate()
+		{
+			EditorUtility.SetDirty(this);
 		}
 	}
 }
