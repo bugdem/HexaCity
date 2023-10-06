@@ -6,11 +6,13 @@ using UnityEngine;
 
 namespace ClocknestGames.Game.Core
 {
+    [System.Serializable]
     public class PathSetting
     {
         public int PartIndexFrom;
         public int PartIndexTo;
         public SplineComputer Path;
+        public bool IsPathReversed;
     }
 
     public abstract class PathTilePart : LandTilePart

@@ -364,9 +364,15 @@ namespace ClocknestGames.Game.Core
 			*/
 		}
 
-		public int GetDistance(Vector3Int cubeIndex1, Vector3Int cubeIndex2)
+		public static int GetDistance(Vector3Int cubeIndex1, Vector3Int cubeIndex2)
 		{
 			return cubeIndex1.ToHex().Distance(cubeIndex2.ToHex());
+		}
+
+		public static Vector3Int GetNeighbourCubeIndex(Vector3Int cubeIndex, int direction)
+		{
+			direction = (direction + 1) % 6;
+			return cubeIndex.ToHex().Neighbor(direction).ToVector3Int();
 		}
 
 		private void OnEnable()

@@ -80,6 +80,25 @@ namespace ClocknestGames.Game.Core
 			bool isGenerated = GenerateTile();
 			transform.localScale = Vector3.one * HexGrid.Get().TileSize;
 		}
+
+		[HorizontalGroup("Split1", 0.5f)]
+		[Button(ButtonSizes.Large), GUIColor(0.4f, 0.8f, 1)]
+		public void ResetGeneratedTileEditor()
+		{
+			_landTileParts = new List<LandTilePartType>
+			{
+				LandTilePartType.Grass,
+				LandTilePartType.Grass,
+				LandTilePartType.Grass,
+				LandTilePartType.Grass,
+				LandTilePartType.Grass,
+				LandTilePartType.Grass,
+				LandTilePartType.Grass
+			};
+
+			TileManager.Get().ChangeGeneratedTileEditor(_landTileParts);
+			GenerateTile(_landTileParts);
+		}
 #endif
 
 		public bool GenerateTile(List<LandTilePartType> newTileParts)
@@ -139,11 +158,13 @@ namespace ClocknestGames.Game.Core
 					{
 						var pathSetting = new PathSetting();
 						int partDiff = partIndex - pathFirstIndex;
+						bool isPathReversed = false;
 						if (partDiff >= 3)
 						{
 							pathSetting.PartIndexFrom = partIndex;
 							pathSetting.PartIndexTo = pathFirstIndex;
 							partDiff = 6 - partDiff;
+							isPathReversed = true;
 						}
 						else
 						{
@@ -151,6 +172,7 @@ namespace ClocknestGames.Game.Core
 							pathSetting.PartIndexTo = partIndex;
 						}
 
+						pathSetting.IsPathReversed = isPathReversed;
 						pathSetting.Path = Instantiate(TileManager.Get().GetRoadPrefab(pathType, partDiff), _pathParent).GetComponent<SplineComputer>();
 						pathSetting.Path.transform.localPosition = Vector3.zero;
 						pathSetting.Path.transform.localEulerAngles = Vector3.up * pathSetting.PartIndexFrom * 60f;
@@ -226,11 +248,13 @@ namespace ClocknestGames.Game.Core
 
 			if (_paths != null)
 			{
-				// Add path node junctions.
+				// Add path node junctions for each path on both ends.
 				for (int index = 0; index < _paths.Count; index++)
 				{
 					var path = _paths[index];
 
+					AddJunction(path, path.PartIndexFrom);
+					AddJunction(path, path.PartIndexTo);
 				}
 			}
 
@@ -245,7 +269,7 @@ namespace ClocknestGames.Game.Core
 			// If center tile, return it.
 			if (direction == 6) return direction;
 			// Remove rotation from direction.
-			return (6 - direction + PlacementRotationIndex) % 6;
+			return (direction - PlacementRotationIndex + 6) % 6;
 		}
 
 		public int ConvertPartIndexToDirection(int partIndex)
@@ -253,7 +277,7 @@ namespace ClocknestGames.Game.Core
 			// If center tile, return it.
 			if (partIndex == 6) return partIndex;
 			// Add rotation to part index.
-			return (PlacementRotationIndex + partIndex) % 6;
+			return (partIndex + PlacementRotationIndex) % 6;
 		}
 
 		public LandTilePart GetLandTilePartOnDirection(int direction)
@@ -271,6 +295,84 @@ namespace ClocknestGames.Game.Core
 				return neighbourLandTile.GetLandTilePartOnDirection(neighbourEdge.index);
 			}
 			return null;
+		}
+
+		public bool HasPathTileOnDirection<T>(int direction) where T : PathTilePart
+		{
+			int partIndex = ConvertDirectionToPartIndex(direction);
+			var part = _parts[partIndex];
+			return part is T;
+		}
+
+		public bool HasPathTileOnDirection(int direction, LandTilePartType pathType)
+		{
+			int partIndex = ConvertDirectionToPartIndex(direction);
+			var part = _parts[partIndex];
+			return part.PartType == pathType;
+		}
+
+		public bool HasAnyPathTileOnDirection(int direction)
+		{
+			int partIndex = ConvertDirectionToPartIndex(direction);
+			var part = _parts[partIndex];
+			return part is PathTilePart;
+		}
+
+		// Pathfinding
+		public bool IsWalkableFromDirection(int direction, LandTilePartType pathType)
+		{
+			var landTilePart = GetLandTilePartOnDirection(direction);
+			return IsWalkableForPathType(landTilePart, pathType);
+		}
+
+		public bool IsWalkableForPathType(LandTilePart landTilePart, LandTilePartType pathType)
+		{
+			return landTilePart.PartType == pathType;
+		}
+
+		private void AddJunction(PathSetting pathSetting, int pathIndex)
+		{
+			int direction = ConvertPartIndexToDirection(pathIndex);
+			LandTilePart tilePart = GetLandTilePartOnDirection(direction);
+			LandTilePart neighbourTilePart = GetNeighbourLandTilePart(direction);
+
+			// Check if tile part and neighbour part has same path type.
+			if (neighbourTilePart != null && neighbourTilePart.PartType == tilePart.PartType)
+			{
+				var pathJunction = Instantiate(TileManager.Get().GetPathJunctionPrefab(), _pathParent);
+				pathJunction.transform.localPosition = Vector3.zero;
+
+				PathJunctionConnection tilePartConnection = new PathJunctionConnection
+				{
+					Part = tilePart,
+					Paths = GetPathsOnLandTilePart(tilePart)
+				};
+
+				PathJunctionConnection neighbourPartConnection = new PathJunctionConnection
+				{
+					Part = neighbourTilePart,
+					Paths = neighbourTilePart.LandTile.GetPathsOnLandTilePart(neighbourTilePart)
+				};
+
+				pathJunction.Initialize(tilePart.PartType, tilePartConnection, neighbourPartConnection);
+			}
+		}
+
+		public List<PathSetting> GetPathsOnLandTilePart(LandTilePart landTilePart)
+		{
+			if (_paths == null || !IsPathPart(landTilePart.PartType))
+				return null;
+
+			List<PathSetting> settings = new();
+			for (int index = 0; index < _paths.Count; index++)
+			{
+				if (landTilePart.PartIndex == _paths[index].PartIndexFrom 
+					|| landTilePart.PartIndex == _paths[index].PartIndexTo)
+				{
+					settings.Add(_paths[index]);
+				}
+			}
+			return settings;
 		}
 	}
 }
