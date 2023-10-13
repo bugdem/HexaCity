@@ -375,6 +375,14 @@ namespace ClocknestGames.Game.Core
 			return cubeIndex.ToHex().Neighbor(direction).ToVector3Int();
 		}
 
+		public static int GetNeighbourDirection(Vector3Int cubeIndex, Vector3Int neighbourCubeIndex)
+		{
+			var difference = neighbourCubeIndex.ToHex().Subtract(cubeIndex.ToHex());
+			var direction = Hex.directions.FindIndex(x => x.q == difference.q && x.r == difference.r && x.s == difference.s);
+			direction = (direction - 1 + 6) % 6;
+			return direction;
+		}
+
 		private void OnEnable()
 		{
 			PrepareGrid();

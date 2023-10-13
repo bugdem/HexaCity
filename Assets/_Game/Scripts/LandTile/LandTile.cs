@@ -3,6 +3,7 @@ using Dreamteck.Splines;
 using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ClocknestGames.Game.Core
@@ -173,9 +174,11 @@ namespace ClocknestGames.Game.Core
 						}
 
 						pathSetting.IsPathReversed = isPathReversed;
-						pathSetting.Path = Instantiate(TileManager.Get().GetRoadPrefab(pathType, partDiff), _pathParent).GetComponent<SplineComputer>();
+						pathSetting.Path = CGExec.RunInMode<Path>(() => Instantiate(TileManager.Get().GetRoadPrefab(pathType, partDiff), _pathParent)
+																 ,() => UnityEditor.PrefabUtility.InstantiatePrefab(TileManager.Get().GetRoadPrefab(pathType, partDiff), _pathParent) as Path);
 						pathSetting.Path.transform.localPosition = Vector3.zero;
 						pathSetting.Path.transform.localEulerAngles = Vector3.up * pathSetting.PartIndexFrom * 60f;
+						pathSetting.Path.Initialize(this, pathSetting, pathType);
 
 						_paths.Add(pathSetting);
 					}
@@ -339,6 +342,10 @@ namespace ClocknestGames.Game.Core
 			// Check if tile part and neighbour part has same path type.
 			if (neighbourTilePart != null && neighbourTilePart.PartType == tilePart.PartType)
 			{
+				// If there is already a junction on intersection, do not add a new one.
+				if (TileManager.Get().GetPathJunction(tilePart.LandTile.PlacedCubeIndex, neighbourTilePart.LandTile.PlacedCubeIndex) != null)
+					return;
+
 				var pathJunction = Instantiate(TileManager.Get().GetPathJunctionPrefab(), _pathParent);
 				pathJunction.transform.localPosition = Vector3.zero;
 
@@ -355,6 +362,8 @@ namespace ClocknestGames.Game.Core
 				};
 
 				pathJunction.Initialize(tilePart.PartType, tilePartConnection, neighbourPartConnection);
+
+				TileManager.Get().AddPathJunction(new PathTilePair(tilePart.LandTile.PlacedCubeIndex, neighbourTilePart.LandTile.PlacedCubeIndex), pathJunction);
 			}
 		}
 
@@ -373,6 +382,43 @@ namespace ClocknestGames.Game.Core
 				}
 			}
 			return settings;
+		}
+
+		public List<PathSetting> GetPathsOnDirection(int direction)
+		{
+			return GetPathsOnLandTilePart(GetLandTilePartOnDirection(direction));
+		}
+
+		public PathSetting GetPathFromSpline(SplineComputer splineComputer)
+		{
+			if (_paths == null) return null;
+
+			return _paths.FirstOrDefault(x => x.Path.SplineComputer == splineComputer);
+		}
+
+		public PathSetting GetPathFromConnectingNeighbours(Vector3Int from, Vector3Int to)
+		{
+			var fromDirection = HexGrid.GetNeighbourDirection(PlacedCubeIndex, from);
+			var toDirection = HexGrid.GetNeighbourDirection(PlacedCubeIndex, to);
+
+			return GetPathFromDirections(fromDirection, toDirection);
+		}
+
+		public PathSetting GetPathFromDirections(int fromDirection, int toDirection)
+		{
+			if (_paths== null) return null;
+
+			foreach (var path in _paths)
+			{
+				var pathFromDirection = ConvertPartIndexToDirection(path.PartIndexFrom);
+				var pathToDirection = ConvertPartIndexToDirection(path.PartIndexTo);
+
+				if ((fromDirection == pathFromDirection && toDirection == pathToDirection)
+					|| (toDirection == pathFromDirection && fromDirection == pathToDirection))
+					return path;
+			}
+
+			return null;
 		}
 	}
 }

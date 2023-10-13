@@ -11,7 +11,7 @@ namespace ClocknestGames.Game.Core
     {
         public int PartIndexFrom;
         public int PartIndexTo;
-        public SplineComputer Path;
+        public Path Path;
         public bool IsPathReversed;
     }
 

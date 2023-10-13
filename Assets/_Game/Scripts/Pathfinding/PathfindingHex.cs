@@ -71,9 +71,15 @@ namespace ClocknestGames.Game.Core
 						_allNodes.Add(neighbourTile.PlacedCubeIndex, neighbourNode);
 					}
 
-					bool hasPathToNeighbour = currentTile.HasPathTileOnDirection(directionToNeighbour, PathType);
+					bool hasPathToNeighbour = currentNode == startNode && currentTile.HasPathTileOnDirection(directionToNeighbour, PathType);
+					if (currentNode.CameFromNode != null)
+					{
+						var pathSetting = currentTile.GetPathFromDirections(currentNode.CameFromDirection, directionToNeighbour);
+						hasPathToNeighbour = pathSetting != null && pathSetting.Path.PathType == PathType;
+					}
+					// bool hasPathToNeighbour = currentTile.HasPathTileOnDirection(directionToNeighbour, PathType);
 					byte neighbourDirection = (byte)((directionToNeighbour + 3) % 6);
-					_closedList.Add(new PathInfo(neighbourNode.CubeIndex, neighbourDirection), neighbourNode);
+					// _closedList.Add(new PathInfo(neighbourNode.CubeIndex, neighbourDirection), neighbourNode);
 					_closedList.Add(new PathInfo(currentNode.CubeIndex, (byte)directionToNeighbour), currentNode);
 
 					if (!hasPathToNeighbour)
@@ -85,6 +91,7 @@ namespace ClocknestGames.Game.Core
 					if (tentativeGCost < neighbourNode.GCost)
 					{
 						neighbourNode.CameFromNode = currentNode;
+						neighbourNode.CameFromDirection = neighbourDirection;
 						neighbourNode.GCost = tentativeGCost;
 						neighbourNode.HCost = CalculateDistanceCost(neighbourNode, endNode);
 						neighbourNode.CalculateFCost();

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4543577589492435719}
   - component: {fileID: 5585871353986920820}
   - component: {fileID: 8653494956789156006}
+  - component: {fileID: -3554541980584815736}
   m_Layer: 0
   m_Name: BasePath
   m_TagString: Untagged
@@ -10232,3 +10233,22 @@ MonoBehaviour:
       blend: 1
       useClippedPercent: 0
       keys: []
+--- !u!114 &-3554541980584815736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3287385764129132228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f15b77d16798d4aa9faaaa101dae2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _pathType: 0
+  _landTile: {fileID: 0}
+  _pathSetting:
+    PartIndexFrom: 0
+    PartIndexTo: 0
+    Path: {fileID: 0}
+    IsPathReversed: 0

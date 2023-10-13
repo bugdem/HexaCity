@@ -22,7 +22,19 @@ namespace ClocknestGames.Game.Core
 	public class LandTilePartPathSetting
 	{
 		public LandTilePartType PathType;
-		public List<SplineComputer> Paths;
+		public List<Path> Paths;
+	}
+	
+	public struct PathTilePair
+	{
+		public Vector3Int Tile1;
+		public Vector3Int Tile2;
+
+		public PathTilePair(Vector3Int tile1, Vector3Int tile2)
+		{
+			Tile1 = tile1;
+			Tile2 = tile2;
+		}
 	}
 
 	[Serializable]
@@ -55,6 +67,7 @@ namespace ClocknestGames.Game.Core
 		private Vector3 _touchWorldPosition;
 		private List<HexTile> _tilesOnRadius;
 		private Dictionary<LandTilePartType, LandTilePartSetting> _landTilePartSettingDic = new();
+		private Dictionary<PathTilePair, PathJunction> _pathJunctionDic = new();
 		private List<LandTile> _tilesWaitingToBePlaced = new();
 		private LandTile _placingLandTile;
 		private int _placingLandTileRotationIndex;
@@ -156,7 +169,7 @@ namespace ClocknestGames.Game.Core
 			return newPlacedTiles;
 		}
 
-		public SplineComputer GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
+		public Path GetRoadPrefab(LandTilePartType pathType, int partIndexDiff)
 		{
 			return _landTilePartPathSettings.First(x => x.PathType == pathType).Paths[partIndexDiff - 1];
 		}
@@ -200,11 +213,17 @@ namespace ClocknestGames.Game.Core
 
 		public LandTilePart CreateLandTilePart(LandTilePartType partType, bool isCenterPart)
 		{
-			// var landTilePartSetting = _landTilePartSettings[partType]; 
-			var landTilePartSetting = Application.isEditor ? _landTilePartSettings.FirstOrDefault(x => x.Type == partType) 
-															: _landTilePartSettingDic[partType]; ;
-			var prefab = landTilePartSetting.Prefab;
-			var landTilePart = Instantiate(prefab);
+			var landTilePart = CGExec.RunInMode<LandTilePart>(
+				() =>
+				{
+					var landTilePartSetting = _landTilePartSettingDic[partType];
+					return Instantiate(landTilePartSetting.Prefab);
+				},
+				() =>
+				{
+					var landTilePartSetting = _landTilePartSettings.FirstOrDefault(x => x.Type == partType);
+					return Instantiate(landTilePartSetting.Prefab);
+				});
 			return landTilePart;
 		}
 
@@ -212,6 +231,20 @@ namespace ClocknestGames.Game.Core
 		{
 			_placedTiles.TryGetValue(cubeIndex, out var landTile);
 			return landTile;
+		}
+
+		public void AddPathJunction(PathTilePair tilePair, PathJunction pathJunction)
+		{
+			_pathJunctionDic.Add(tilePair, pathJunction);
+		}
+
+		public PathJunction GetPathJunction(Vector3Int pathPairTile1, Vector3Int pathPairTile2)
+		{
+			if (_pathJunctionDic.TryGetValue(new PathTilePair(pathPairTile1, pathPairTile2), out PathJunction pathJunction))
+				return pathJunction;
+
+			_pathJunctionDic.TryGetValue(new PathTilePair(pathPairTile2, pathPairTile1), out pathJunction);
+			return pathJunction;
 		}
 
 		public void PlaceLandTileOnHexTile(LandTile landTile, HexTile hexTile)

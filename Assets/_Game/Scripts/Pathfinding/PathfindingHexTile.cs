@@ -12,6 +12,8 @@ namespace ClocknestGames.Game.Core
 
 		public bool IsWalkable { get; private set; }
 		public PathfindingHexTile CameFromNode;
+		public byte CameFromDirection;
+		public PathSetting PathSetting;
 
 		public PathfindingHexTile(Vector3Int cubeIndex)
 		{

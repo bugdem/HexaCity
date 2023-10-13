@@ -1794,7 +1794,7 @@ namespace Dreamteck.Splines
                     {
                         if (connections[j].spline == this)
                         {
-                            Debug.LogError("Node " + node.name + " is already connected to spline " + name + " at point " + _nodes[i].pointIndex);
+							Debug.LogError("Node " + node.name + " is already connected to spline " + name + " at point " + _nodes[i].pointIndex);
                             return;
                         }
                     }

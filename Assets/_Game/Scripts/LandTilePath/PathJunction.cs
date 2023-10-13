@@ -37,8 +37,8 @@ namespace ClocknestGames.Game.Core
 			AddConnection(LandTileConnection1);
 			AddConnection(LandTileConnection2);
 
-			var splineNodeConnection = Junction.GetConnections()[1];
-			splineNodeConnection.invertTangents = !splineNodeConnection.invertTangents;
+			// var splineNodeConnection = Junction.GetConnections()[1];
+			// splineNodeConnection.invertTangents = !splineNodeConnection.invertTangents;
 			Junction.UpdateConnectedComputers();
 		}
 
@@ -47,16 +47,17 @@ namespace ClocknestGames.Game.Core
 			foreach (var pathSetting in connection.Paths)
 			{
 				// Get point index on spline for connection. It is first or last point on spline.
-				int pointIndex = pathSetting.PartIndexFrom == connection.Part.PartIndex ? 0 : pathSetting.Path.pointCount - 1;
-				Junction.AddConnection(pathSetting.Path, pointIndex);
+				int pointIndex = pathSetting.PartIndexFrom == connection.Part.PartIndex ? 0 : pathSetting.Path.SplineComputer.pointCount - 1;
+				// Junction.AddConnection(pathSetting.Path.SplineComputer, pointIndex);
+				pathSetting.Path.SplineComputer.ConnectNode(Junction, pointIndex);				
 			}
 		}
 
 		private Vector3 GetPointPosition(PathJunctionConnection connection)
 		{
 			var pathSetting = connection.Paths[0];
-			int pointIndex = pathSetting.PartIndexFrom == connection.Part.PartIndex ? 0 : pathSetting.Path.pointCount - 1;
-			return pathSetting.Path.GetPoint(pointIndex).position;
+			int pointIndex = pathSetting.PartIndexFrom == connection.Part.PartIndex ? 0 : pathSetting.Path.SplineComputer.pointCount - 1;
+			return pathSetting.Path.SplineComputer.GetPoint(pointIndex).position;
 		}
 	}
 }
