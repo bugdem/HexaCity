@@ -48,6 +48,21 @@ namespace ClocknestGames.Game.Core
 			{
 				HandleMouse();
 			}
+
+			HandleKeyInput();
+		}
+
+		void HandleKeyInput()
+		{
+			float panLength = 12f;
+			Vector3 panPosition = Vector3.zero;
+			if (Input.GetKey(KeyCode.W)) panPosition += Vector3.down * panLength;
+			if (Input.GetKey(KeyCode.S)) panPosition += Vector3.up * panLength;
+			if (Input.GetKey(KeyCode.D)) panPosition += Vector3.left * panLength;
+			if (Input.GetKey(KeyCode.A)) panPosition += Vector3.right * panLength;
+
+			if (panPosition.magnitude > 0)
+				PanCamera(_lastPanPosition + panPosition);
 		}
 
 		void HandleTouch()
